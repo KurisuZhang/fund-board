@@ -1,0 +1,139 @@
+{
+  "total": 1.0,
+  "label": "中性",
+  "strength": 1.0,
+  "components": [
+    {
+      "key": "fundamental",
+      "label": "基本面",
+      "weight": 50,
+      "score": 12.0,
+      "max": 50.0,
+      "ratio": 24.0,
+      "items": [
+        {
+          "key": "cost",
+          "label": "上游成本/景气（碳酸锂期货）",
+          "score": 6.0,
+          "max": 18,
+          "value": "79239 元/吨",
+          "reason": "站上MA20(+6)；60日分位28%(中性)；20日涨跌-0.4%(中性)",
+          "missing": false
+        },
+        {
+          "key": "valuation",
+          "label": "板块估值（市值加权PE-TTM）",
+          "score": 6.0,
+          "max": 12,
+          "value": "27.9×",
+          "reason": "加权PE 27.9 倍（样本19只），处于低估区间",
+          "missing": false
+        },
+        {
+          "key": "breadth",
+          "label": "景气广度（站上MA20比例）",
+          "score": 0.0,
+          "max": 12,
+          "value": "7/20",
+          "reason": "7/20 只站上MA20 = 35%，广度中性",
+          "missing": false
+        },
+        {
+          "key": "news",
+          "label": "新闻情绪（近48小时关键词）",
+          "score": 0.0,
+          "max": 8,
+          "value": "30 条",
+          "reason": "近48小时 30 条相关：正面14 / 负面14；正面词 政策支持(4),装机(4),订单(4)；负面词 亏损(4),降价(4),下滑(2)",
+          "missing": false
+        }
+      ]
+    },
+    {
+      "key": "volume",
+      "label": "量能",
+      "weight": 30,
+      "score": -1.0,
+      "max": 30.0,
+      "ratio": -3.3,
+      "items": [
+        {
+          "key": "expansion",
+          "label": "成交额放大×方向",
+          "score": 0.0,
+          "max": 10,
+          "value": "1.07×",
+          "reason": "5日均额/20日均额 = 1.07，近5日涨跌 -0.3%（横盘）",
+          "missing": false
+        },
+        {
+          "key": "price_volume",
+          "label": "量价配合一致性",
+          "score": -2.0,
+          "max": 8,
+          "value": "40%",
+          "reason": "近10日量价同向 4/10 = 40%（量价背离）",
+          "missing": false
+        },
+        {
+          "key": "close_strength",
+          "label": "收盘强度（日内区间位置）",
+          "score": 1.0,
+          "max": 6,
+          "value": "57%",
+          "reason": "近3日收盘位于日内区间 57% 处（收在偏高位置、尾盘偏强）",
+          "missing": false
+        },
+        {
+          "key": "breakout",
+          "label": "突破确认",
+          "score": 0.0,
+          "max": 6,
+          "value": "1.22×",
+          "reason": "未突破 20 日区间（量能不足）",
+          "missing": false
+        }
+      ]
+    },
+    {
+      "key": "technical",
+      "label": "技术",
+      "weight": 20,
+      "score": -10.0,
+      "max": 20.0,
+      "ratio": -50.0,
+      "items": [
+        {
+          "key": "ma",
+          "label": "均线结构",
+          "score": -4.0,
+          "max": 8,
+          "value": "0.545/0.546/0.544",
+          "reason": "短期走弱、长期均线仍上行",
+          "missing": false
+        },
+        {
+          "key": "macd",
+          "label": "MACD",
+          "score": -6.0,
+          "max": 6,
+          "value": "DIF 0.000 / DEA 0.000",
+          "reason": "DIF在DEA下方且绿柱放大",
+          "missing": false
+        },
+        {
+          "key": "position",
+          "label": "位置（RSI/乖离率）",
+          "score": 0.0,
+          "max": 6,
+          "value": "RSI 43",
+          "reason": "RSI43、乖离率 -0.3%，位置中性",
+          "missing": false
+        }
+      ]
+    }
+  ],
+  "missing": [],
+  "notes": [],
+  "rulesVersion": "1.0.0"
+}

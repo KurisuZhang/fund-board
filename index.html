@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>储能电池涨跌看板 · 159305</title>
+<meta name="description" content="储能电池ETF广发(159305)的涨跌打分看板：基本面50 + 量能30 + 技术20，数据来自腾讯行情与新浪财经公开接口。" />
+<link rel="stylesheet" href="assets/style.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔋</text></svg>" />
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <h1>⚡ 储能电池涨跌看板</h1>
+    <span class="badge" id="modeBadge">加载中…</span>
+    <span class="badge" id="dataBadge">—</span>
+    <span class="badge" id="thresholds">—</span>
+    <span class="spacer"></span>
+    <span class="sub" id="fetchedAt">—</span>
+    <button class="btn" id="refreshBtn">强制刷新</button>
+  </header>
+
+  <div id="loading" class="loading"><span class="spinner"></span><span class="txt">正在抓取行情数据…</span></div>
+
+  <div class="notice" id="warnBox"></div>
+
+  <!-- 结论区 -->
+  <section class="hero">
+    <div class="card lamp-card">
+      <div class="lamp" id="lamp"></div>
+      <div class="lamp-label" id="lampLabel">—</div>
+      <div class="lamp-sub" id="lampBand">—</div>
+      <div class="score-big" id="lampScore">—</div>
+    </div>
+    <div class="facts" id="facts"></div>
+  </section>
+
+  <!-- 图表区 -->
+  <section class="grid">
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>储能电池ETF广发 159305 <span class="hint">收盘价 / MA20 / MA60 / 成交量（手）</span></h2>
+      <div id="etfChart" class="chart tall"></div>
+    </div>
+
+    <div class="card">
+      <h2>打分分解 <span class="hint">正为偏多、负为偏空</span></h2>
+      <div id="scoreChart" class="chart"></div>
+    </div>
+
+    <div class="card">
+      <h2>碳酸锂期货（上游成本）<span class="hint">连续合约 · 元/吨</span></h2>
+      <div id="futuresChart" class="chart"></div>
+    </div>
+
+    <div class="card">
+      <h2>板块龙头当日涨跌 <span class="hint">按涨跌幅排序</span></h2>
+      <div id="stocksChart" class="chart tall"></div>
+    </div>
+
+    <div class="card">
+      <h2>子项明细 <span class="hint">每一项都可追溯到具体数值与理由</span></h2>
+      <table class="items">
+        <thead>
+          <tr><th style="width:36%">指标</th><th style="width:16%">得分</th><th style="width:12%">数值</th><th>理由</th></tr>
+        </thead>
+        <tbody id="itemBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- 持仓 -->
+  <section class="card" style="margin-bottom:14px;">
+    <h2>我的持仓 <span class="hint">成本价只保存在本机浏览器 localStorage，不会提交到任何服务器</span></h2>
+    <div class="position">
+      <div>
+        <label for="costPrice">持仓成本价（元/份）</label>
+        <input id="costPrice" type="number" step="0.001" min="0" placeholder="例如 0.653" />
+      </div>
+      <div>
+        <label>浮动盈亏</label>
+        <div class="pl flat" id="plBox">—</div>
+      </div>
+      <div>
+        <label>说明</label>
+        <div class="pl-note" id="plNote">填入成本价后自动计算。</div>
+      </div>
+      <div>
+        <a class="btn" href="backtest.html" style="text-decoration:none;display:inline-block;">查看历史胜率 →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 新闻 -->
+  <section class="card">
+    <h2>近期相关新闻 <span class="hint">关键词过滤后按时间排序，用于情绪子项</span></h2>
+    <ul class="news-list" id="newsList"></ul>
+  </section>
+
+  <footer class="foot">
+    数据来源：<span id="sources">—</span>　规则版本：<span id="rulesVer">—</span><br />
+    口径说明：权重 基本面 50 / 量能 30 / 技术 20；综合得分 = 各维度得分率 × 权重求和，归一化到 ±100。
+    「估值」使用板块龙头市值加权 PE(TTM)；「广度」为自选股收盘价站上 MA20 的比例；「新闻情绪」为近 48 小时关键词净情绪。
+    月度储能装机、招标量与电芯成交价没有稳定免费接口，因此本看板用<b>代理指标</b>近似基本面，请勿等同于真实装机数据。<br />
+    <b>免责声明</b>：本页面为个人量化观察工具，所有分数来自公开数据的机械计算，<b>不构成任何投资建议</b>，据此操作风险自负。
+  </footer>
+</div>
+
+<script src="assets/vendor/echarts.min.js"></script>
+<script src="assets/indicators.js"></script>
+<script src="assets/scoring.js"></script>
+<script src="assets/datafeed.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

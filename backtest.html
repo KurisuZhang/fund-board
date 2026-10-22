@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>历史胜率验证 · 储能电池涨跌看板</title>
+<link rel="stylesheet" href="assets/style.css" />
+<style>
+  .holds { display: flex; gap: 8px; margin: 4px 0 14px; flex-wrap: wrap; }
+  .hold-btn { background: #1c2331; border: 1px solid #273043; color: #cfd9e8; padding: 6px 14px;
+    border-radius: 9px; cursor: pointer; font-size: 13px; }
+  .hold-btn.active { border-color: #4f8cff; color: #fff; background: #172033; }
+  #sampleTip { display: none; background: #1d1a10; border: 1px solid #4d3d1f; color: #ffd98a;
+    padding: 9px 13px; border-radius: 10px; font-size: 12.5px; margin-bottom: 12px; }
+  #status { color: #8b98ac; font-size: 13px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>🧪 历史胜率验证</h1>
+    <span class="badge">信号翻多 → 持有 N 日</span>
+    <span class="spacer"></span>
+    <a class="btn" href="index.html" style="text-decoration:none;">← 返回看板</a>
+  </header>
+
+  <div id="status">加载中…</div>
+
+  <section class="card" style="margin-bottom:14px;">
+    <h2>持有周期</h2>
+    <div class="holds">
+      <button class="hold-btn" data-hold="3">3 个交易日</button>
+      <button class="hold-btn active" data-hold="5">5 个交易日</button>
+      <button class="hold-btn" data-hold="10">10 个交易日</button>
+      <button class="hold-btn" data-hold="20">20 个交易日</button>
+    </div>
+    <div id="sampleTip"></div>
+    <div class="facts" id="statCards" style="grid-template-columns: repeat(5, 1fr);"></div>
+    <div style="color:#8b98ac;font-size:11.8px;margin-top:10px;" id="btWarn"></div>
+  </section>
+
+  <section class="card" style="margin-bottom:14px;">
+    <h2>累计收益对比 <span class="hint">信号策略 vs 买入持有（同期起点归一为 0%）</span></h2>
+    <div id="curveChart" class="chart tall"></div>
+  </section>
+
+  <section class="card">
+    <h2>信号明细 <span class="hint">每一次得分翻多的事件与前向收益</span></h2>
+    <table class="items">
+      <thead>
+        <tr><th>信号日</th><th>当日得分</th><th>买入 → 卖出</th><th>区间收益</th><th>相对沪深300</th><th>卖出日</th></tr>
+      </thead>
+      <tbody id="eventBody"></tbody>
+    </table>
+  </section>
+
+  <footer class="foot">
+    回测口径：把当前打分规则逐日套用到历史行情上，事件定义为「综合得分由低于偏多阈值转为达到阈值」的那一天，
+    以当日收盘买入、第 N 个交易日收盘卖出。<br />
+    <b>重要局限</b>：估值（PE 只能取当期快照）与新闻情绪无法回溯，回测只覆盖价格类因子（上游期货 / 量能 / 技术），
+    缺失子项由打分引擎自动归一——因此回测<b>不是</b>当前完整打分体系的历史检验。<br />
+    历史胜率不代表未来表现，本页<b>不构成投资建议</b>。
+  </footer>
+</div>
+
+<script src="assets/vendor/echarts.min.js"></script>
+<script src="assets/indicators.js"></script>
+<script src="assets/scoring.js"></script>
+<script src="assets/datafeed.js"></script>
+<script src="assets/backtest.js"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+# 本地运行时产生的文件，不进仓库
+data/
+.deps/
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+server.log
+*.log
+
+# 临时调试产物
+page.html
+out.txt
+err.txt

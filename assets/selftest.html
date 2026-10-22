@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>自检 · JS 与 Python 打分一致性</title>
+<link rel="stylesheet" href="style.css" />
+<style>
+  .pass { color: #22c55e; font-weight: 700; }
+  .fail { color: #ff5d5d; font-weight: 700; }
+  table.items td.num { font-variant-numeric: tabular-nums; font-family: ui-monospace, Menlo, monospace; }
+  #verdict { font-size: 20px; margin: 6px 0 14px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>🔍 自检：浏览器 JS 与 Python 打分是否一致</h1>
+    <span class="spacer"></span>
+    <a class="btn" href="index.html" style="text-decoration:none;">← 返回看板</a>
+  </header>
+
+  <div class="card" style="margin-bottom:14px;">
+    <p style="margin:0;color:#8baf">
+      用同一份固定输入样本（<code>fixtures/sample_input.json</code>）跑浏览器端的打分引擎，
+      与 Python 端预先算好的期望值（<code>fixtures/golden.json</code>，由 <code>pytest</code> 生成）逐项比对。
+      两端一致说明页面显示的分数可信；若不一致，说明两份实现出现了口径漂移。
+    </p>
+    <div id="verdict">检测中…</div>
+    <div id="summary"></div>
+  </div>
+
+  <section class="card">
+    <h2>逐项比对</h2>
+    <table class="items">
+      <thead><tr><th style="width:26%">项目</th><th style="width:18%">浏览器(JS)</th><th style="width:18%">期望(Python)</th><th>结果</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </section>
+
+  <footer class="foot">
+    生成期望值：<code>python3 tests/gen_fixtures.py</code>；命令行全量测试：<code>python3 -m pytest tests/ -q</code>
+    （其中 parity 测试用 quickjs 直接执行本页同一份 JS 代码）。
+  </footer>
+</div>
+
+<script src="indicators.js"></script>
+<script src="scoring.js"></script>
+<script>
+(async function () {
+  var EPS = 1e-9;
+  var rows = document.getElementById('rows');
+  var fails = 0, checks = 0;
+
+  function addRow(name, jsVal, pyVal, ok) {
+    checks++;
+    if (!ok) fails++;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td>' + name + '</td>'
+      + '<td class="num">' + jsVal + '</td>'
+      + '<td class="num">' + pyVal + '</td>'
+      + '<td class="' + (ok ? 'pass' : 'fail') + '">' + (ok ? 'PASS' : 'FAIL') + '</td>';
+    rows.appendChild(tr);
+  }
+  function numEq(a, b) {
+    if (a === null || a === undefined) return b === null || b === undefined;
+    return Math.abs(Number(a) - Number(b)) <= EPS;
+  }
+
+  try {
+    var rules = await (await fetch('../shared/scoring_rules.json')).json();
+    var sample = await (await fetch('fixtures/sample_input.json')).json();
+    var golden = await (await fetch('fixtures/golden.json')).json();
+    var js = SCORING.scoreDashboard(sample, rules);
+
+    addRow('综合得分 total', js.total, golden.total, numEq(js.total, golden.total));
+    addRow('信号灯 label', js.label, golden.label, js.label === golden.label);
+    addRow('强度 strength', js.strength, golden.strength, numEq(js.strength, golden.strength));
+    addRow('缺失项 missing', JSON.stringify(js.missing), JSON.stringify(golden.missing),
+      JSON.stringify(js.missing.slice().sort()) === JSON.stringify(golden.missing.slice().sort()));
+
+    for (var i = 0; i < golden.components.length; i++) {
+      var g = golden.components[i], jg = js.components[i];
+      addRow('维度 ' + g.label + ' 得分', jg.score, g.score, numEq(jg.score, g.score));
+      addRow('维度 ' + g.label + ' 满分', jg.max, g.max, numEq(jg.max, g.max));
+      addRow('维度 ' + g.label + ' 得分率', jg.ratio, g.ratio, numEq(jg.ratio, g.ratio));
+      for (var k = 0; k < g.items.length; k++) {
+        var it = g.items[k], ji = jg.items[k];
+        addRow('  子项 ' + it.key, ji.score, it.score, numEq(ji.score, it.score) && ji.missing === it.missing);
+      }
+    }
+
+    var verdict = document.getElementById('verdict');
+    if (fails === 0) {
+      verdict.className = 'pass';
+      verdict.textContent = '✅ 全部一致：' + checks + ' 项检查通过，浏览器显示的打分与 Python 完全一致。';
+    } else {
+      verdict.className = 'fail';
+      verdict.textContent = '❌ 有 ' + fails + ' / ' + checks + ' 项不一致，请检查 assets/scoring.js 与 local/scoring.py。';
+    }
+    document.getElementById('summary').textContent =
+      '样本综合得分：' + js.total + '（' + js.label + '）；规则版本 ' + rules.version;
+  } catch (e) {
+    var v = document.getElementById('verdict');
+    v.className = 'fail';
+    v.textContent = '自检运行失败：' + e.message;
+  }
+})();
+</script>
+</body>
+</html>
