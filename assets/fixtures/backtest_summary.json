@@ -1,0 +1,136 @@
+{
+ "generatedAt": "2026-10-23",
+ "rangeStart": "2025-09-26",
+ "rangeEnd": "2026-10-22",
+ "hold": 5,
+ "bucketWidth": 10,
+ "minSamples": 8,
+ "buckets": [
+  {
+   "bucket": -60,
+   "label": "-60~-50",
+   "samples": 2,
+   "winRate": 50.0,
+   "avgReturn": 0.97,
+   "medianReturn": 4.41
+  },
+  {
+   "bucket": -50,
+   "label": "-50~-40",
+   "samples": 5,
+   "winRate": 60.0,
+   "avgReturn": -0.04,
+   "medianReturn": 2.89
+  },
+  {
+   "bucket": -40,
+   "label": "-40~-30",
+   "samples": 12,
+   "winRate": 0.0,
+   "avgReturn": -6.01,
+   "medianReturn": -6.23
+  },
+  {
+   "bucket": -30,
+   "label": "-30~-20",
+   "samples": 21,
+   "winRate": 52.4,
+   "avgReturn": 0.05,
+   "medianReturn": 0.05
+  },
+  {
+   "bucket": -20,
+   "label": "-20~-10",
+   "samples": 25,
+   "winRate": 24.0,
+   "avgReturn": -1.85,
+   "medianReturn": -1.73
+  },
+  {
+   "bucket": -10,
+   "label": "-10~0",
+   "samples": 31,
+   "winRate": 41.9,
+   "avgReturn": -1.93,
+   "medianReturn": -1.32
+  },
+  {
+   "bucket": 0,
+   "label": "0~10",
+   "samples": 50,
+   "winRate": 60.0,
+   "avgReturn": 0.98,
+   "medianReturn": 1.7
+  },
+  {
+   "bucket": 10,
+   "label": "10~20",
+   "samples": 41,
+   "winRate": 51.2,
+   "avgReturn": 0.13,
+   "medianReturn": 0.05
+  },
+  {
+   "bucket": 20,
+   "label": "20~30",
+   "samples": 32,
+   "winRate": 40.6,
+   "avgReturn": 0.24,
+   "medianReturn": -0.72
+  },
+  {
+   "bucket": 30,
+   "label": "30~40",
+   "samples": 15,
+   "winRate": 60.0,
+   "avgReturn": 0.11,
+   "medianReturn": 0.21
+  },
+  {
+   "bucket": 40,
+   "label": "40~50",
+   "samples": 8,
+   "winRate": 12.5,
+   "avgReturn": -2.45,
+   "medianReturn": -2.92
+  },
+  {
+   "bucket": 50,
+   "label": "50~60",
+   "samples": 6,
+   "winRate": 50.0,
+   "avgReturn": 0.77,
+   "medianReturn": 3.35
+  },
+  {
+   "bucket": 60,
+   "label": "60~70",
+   "samples": 2,
+   "winRate": 0.0,
+   "avgReturn": -2.7,
+   "medianReturn": -0.2
+  }
+ ],
+ "signalDates": [
+  "2025-10-09",
+  "2025-10-23",
+  "2025-10-30",
+  "2025-11-11",
+  "2025-12-12",
+  "2025-12-17",
+  "2025-12-29",
+  "2026-02-24",
+  "2026-02-26",
+  "2026-03-02",
+  "2026-03-05",
+  "2026-03-16",
+  "2026-04-13",
+  "2026-04-15",
+  "2026-04-21",
+  "2026-05-08",
+  "2026-05-15",
+  "2026-08-10",
+  "2026-08-17"
+ ],
+ "note": "仅价格类因子（期货/量能/技术）；估值与新闻不可回溯，故与完整打分体系不完全等价。"
+}

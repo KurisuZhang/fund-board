@@ -274,3 +274,59 @@ def test_futures_change_shown_in_both_modes():
     up = json.loads(ctx.eval("JSON.stringify(UP)"))
     assert up["change"] == 5 and round(up["changePct"], 9) == 5
     assert "▲" in ctx.eval("UP_NOTE") and "+5" in ctx.eval("UP_NOTE")
+
+
+# ---------------------------------------------------------------- 前端资产
+def test_index_html_references_existing_assets():
+    """静态版只有一个入口；脚本顺序即依赖顺序，缺一个就白屏。"""
+    with open(os.path.join(ROOT, "index.html"), encoding="utf-8") as f:
+        html = f.read()
+    import re
+
+    refs = re.findall(r'(?:src|href)="([^"]+)"', html)
+    local = [r for r in refs if not r.startswith(("http", "data:", "#"))
+             and not r.startswith("/api")]
+    assert local, "index.html 应该引用本地 assets"
+    for rel in local:
+        assert os.path.exists(os.path.join(ROOT, rel)), "缺少文件：%s" % rel
+
+    scripts = re.findall(r'<script src="([^"]+)"', html)
+    order = [os.path.basename(s) for s in scripts]
+    assert order.index("echarts.min.js") < order.index("charts.js") < order.index("app.js")
+    assert order.index("motion.js") < order.index("app.js")
+    assert order.index("theme.js") < order.index("app.js")
+    assert 'data-theme="dark"' in html, "首屏必须是深色，避免闪白"
+
+
+def test_frontend_modules_parse():
+    """charts.js / motion.js / theme.js 在浏览器里是独立 IIFE，这里只验证能解析且导出存在。"""
+    ctx = quickjs.Context()
+    ctx.eval("""
+      var window = { matchMedia: function(){ return { matches: false }; },
+                     addEventListener: function(){}, setTimeout: function(){ return 1; },
+                     dispatchEvent: function(){}, location: { search: '' } };
+      var navigator = { hardwareConcurrency: 8 };
+      var localStorage = { getItem: function(){ return null; }, setItem: function(){} };
+      var document = { documentElement: { dataset: {} }, getElementById: function(){ return null; },
+                       querySelector: function(){ return null; }, addEventListener: function(){} };
+      var CustomEvent = function(t, o){ this.type = t; this.detail = (o||{}).detail; };
+      var requestAnimationFrame = function(fn){ return 1; };
+      var echarts = { init: function(){ return { setOption: function(){}, resize: function(){},
+                                                 isDisposed: function(){ return false; }, clear: function(){} }; } };
+    """)
+    for name in ("motion.js", "theme.js", "charts.js"):
+        with open(os.path.join(ROOT, "assets", name), encoding="utf-8") as f:
+            ctx.eval(f.read())
+    assert json.loads(ctx.eval("JSON.stringify(!!window.MOTION)")) is True
+    assert json.loads(ctx.eval("JSON.stringify(!!window.THEME)")) is True
+    assert json.loads(ctx.eval("JSON.stringify(!!window.CHARTS)")) is True
+    assert json.loads(ctx.eval("JSON.stringify(window.THEME.current())")) == "dark"
+
+
+def test_summary_fixture_is_shipped_for_static_mode():
+    """静态版没有后端，历史胜率只能读仓库里的 JSON；缺了页面会显示"暂无统计快照"。"""
+    path = os.path.join(ROOT, "assets", "fixtures", "backtest_summary.json")
+    assert os.path.exists(path), "assets/fixtures/backtest_summary.json 必须随仓库发布"
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    assert data["buckets"] and data["hold"] == 5

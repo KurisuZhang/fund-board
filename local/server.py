@@ -30,6 +30,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(BASE_DIR, "local"))
 
 import backtest as backtest_mod  # noqa: E402
+import backtest_summary  # noqa: E402
 import datafeed  # noqa: E402
 import scoring  # noqa: E402
 import store  # noqa: E402
@@ -42,6 +43,7 @@ CACHE_TTL = 60.0
 
 app = Flask(__name__, static_folder=os.path.join(BASE_DIR, "assets"), static_url_path="/assets")
 _cache: dict = {"payload": None, "ts": 0.0, "lock": threading.Lock()}
+_summary_cache: dict = {"data": None, "ts": 0.0}
 
 
 def load_rules() -> dict:
@@ -116,8 +118,8 @@ def build_payload(force: bool = False) -> dict:
             "config": config,
             "charts": {
                 "etf": [
-                    {"d": etf_bars[i]["d"], "c": etf_bars[i]["c"], "h": etf_bars[i]["h"],
-                     "l": etf_bars[i]["l"], "v": etf_bars[i]["v"],
+                    {"d": etf_bars[i]["d"], "o": etf_bars[i].get("o"), "c": etf_bars[i]["c"],
+                     "h": etf_bars[i]["h"], "l": etf_bars[i]["l"], "v": etf_bars[i]["v"],
                      "ma20": ma20[i], "ma60": ma60[i]}
                     for i in range(max(0, len(etf_bars) - n), len(etf_bars))
                 ],
@@ -210,6 +212,20 @@ def backtest_api():
         return jsonify(run_backtest(hold=hold))
     except Exception as exc:  # noqa: BLE001
         return jsonify({"error": str(exc)}), 500
+
+
+@app.route("/api/summary")
+def api_summary():
+    """历史胜率分桶（10 分钟缓存）；页面首页「历史同类情形」用它。"""
+    if _summary_cache["data"] and time.time() - _summary_cache["ts"] < 600:
+        return jsonify(_summary_cache["data"])
+    try:
+        data = backtest_summary.build_summary(load_rules())
+    except Exception as exc:  # noqa: BLE001
+        return jsonify({"error": "生成历史统计失败：%s" % exc}), 500
+    _summary_cache["data"] = data
+    _summary_cache["ts"] = time.time()
+    return jsonify(data)
 
 
 @app.route("/api/health")

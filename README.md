@@ -8,6 +8,10 @@
 
 两端共用同一份规则文件 `shared/scoring_rules.json`，并有自动化测试保证「浏览器 JS」与「Python」打分结果完全一致。
 
+![深色主题](docs/screenshots/dashboard-dark.png)
+
+> 同一套页面，右上角一键切换深色 / 浅色；窄屏自动单列排版（见 `docs/screenshots/dashboard-narrow.png`）。
+
 ---
 
 ## 1. 快速开始
@@ -25,27 +29,56 @@ python3 local/server.py --port 9000 --no-open
 
 ```bash
 git init && git add -A && git commit -m "feat: 储能电池涨跌看板"
-git remote add origin https://github.com/<你的用户名>/energy-storage-battery-dashboard.git
+git remote add origin https://github.com/KurisuZhang/fund-board.git
 git push -u origin main
 ```
 
 然后在 GitHub 仓库 **Settings → Pages → Source: Deploy from a branch → main / (root) → Save**，
-等 1–2 分钟访问 `https://<你的用户名>.github.io/energy-storage-battery-dashboard/`。
+等 1–2 分钟访问 https://kurisuzhang.github.io/fund-board/ 。
 
 > 仓库建议设为 **Public**（私仓用 Pages 需要付费 Pro）。持仓成本价保存在浏览器 `localStorage`，**不会进入仓库**。
 
 ### 测试
 
 ```bash
-python3 -m pytest tests/ -q                 # 全部测试（含两端一致性、回测、静态链路仿真）
+python3 -m pytest tests/ -q                 # 全部测试（90 个：口径 / 两端一致性 / 回测 / 静态链路 / UI 文案 / 动效）
 python3 tests/gen_fixtures.py               # 改了打分规则后：重新生成 golden 期望值
+python3 local/backtest_summary.py           # 重新生成「历史同类情形」快照（assets/fixtures/backtest_summary.json）
 ```
 
 > JS/Python 一致性测试依赖 quickjs：`pip install --target .deps/quickjs quickjs`（未安装时相关测试自动 skip）。
 
 ---
 
-## 2. 打分口径
+## 2. 界面导览（看什么、怎么看）
+
+页面从上到下是一套「先结论、再证据、最后明细」的顺序，全部由自动数据算出，没有手工录入项。
+
+| 区块 | 内容 | 口径 |
+|---|---|---|
+| **刻度盘 + 一句话结论** | 综合得分（±100）与信号灯；下面是机械生成的文字结论，指出最强 / 最弱的子项 | 结论只是把分数翻译成中文，不含主观判断 |
+| **多空力量条** | 所有子项的正分合计 vs 负分合计，一眼看出多空谁占上风 | 悬停可看贡献最大的三个子项 |
+| **四个关键事实** | ETF 现价、碳酸锂连续合约（含较昨结算涨跌）、加权 PE、站上 MA20 的广度 | 涨跌配色固定「红涨绿跌」 |
+| **历史同类情形** | 当前得分落在哪个 ±10 分桶，历史上该桶之后 5 日上涨概率 / 平均收益 / 样本数 | 快照来自 `local/backtest_summary.py`，静态版读仓库 JSON |
+| **关键价位提示** | 收复 MA20 还需多少、广度回到 50% 需几只翻红、综合分转多的分差、碳酸锂回到 MA20 的距离 | 回答「什么情况下结论会翻转」 |
+| **K 线主图** | 蜡烛图 + MA20/MA60 + 成交量副图 + 历史买入信号脉冲点 + **持仓成本虚线** | 支持滚轮缩放；成本线随输入实时移动 |
+| **分数从哪来** | 瀑布图：三个维度各自加减多少，落到综合得分 | 负分向下、正分向上 |
+| **碳酸锂 / 板块温度** | 上游期货走势（含 MA20 与近 60 日区间）；23 只自选股当日涨跌热力块 | 红涨绿跌，颜色越深幅度越大 |
+| **子项明细** | 10 个子项逐个折叠展开：数值、双向得分条、得分、一句话理由 | 缺数据的子项标「缺失」并按权重归一 |
+| **我的持仓** | 成本价输入 → 大号浮动盈亏；同一成本自动画进 K 线 | 只存 `localStorage`，不上传、不入库 |
+| **近期新闻** | 近 48 小时相关新闻，带正面 / 中性 / 负面标签 | 关键词来自规则文件，按时间分组 |
+
+### 主题与动效
+
+- **双主题**：默认深色，右上角一键切换浅色，选择记在 `localStorage`（`sb_theme_v1`）；
+  也可用 `?theme=light` 临时预览、`?cost=0.68` 临时带入成本价（都不会写回本地存储）。
+- **动效原则**：入场 220–650ms、只用 `opacity` / `transform`；数字滚动、刻度盘指针、力量条、折叠面板都有过渡；
+  动画只播一次（切换主题不会重播）；`prefers-reduced-motion` 下全部关闭；
+  后台标签页里浏览器会节流 `requestAnimationFrame`，代码用定时器兜底，保证内容一定会显示出来。
+
+---
+
+## 3. 打分口径
 
 总分 = Σ（维度得分率 × 维度权重），落在 ±100；权重与全部阈值都在 `shared/scoring_rules.json` 里，改完记得重跑 `gen_fixtures.py` 与 pytest。
 
@@ -81,7 +114,7 @@ python3 tests/gen_fixtures.py               # 改了打分规则后：重新生�
 
 ---
 
-## 3. 数据源与实测可用性（2026-10 实测）
+## 4. 数据源与实测可用性（2026-10 实测）
 
 | 用途 | 接口 | 浏览器（GitHub Pages） | Python 本地 |
 |---|---|---|---|
@@ -104,7 +137,7 @@ python3 tests/gen_fixtures.py               # 改了打分规则后：重新生�
 
 ---
 
-## 4. 目录结构
+## 5. 目录结构
 
 ```
 ├─ index.html              静态看板（GitHub Pages 入口）
@@ -113,32 +146,40 @@ python3 tests/gen_fixtures.py               # 改了打分规则后：重新生�
 │   ├─ datafeed.js         浏览器抓数：腾讯 fetch + 新浪 JSONP + 并发限流 + 除权修复
 │   ├─ indicators.js       MA / EMA / MACD / RSI / 分位（与 indicators.py 对应）
 │   ├─ scoring.js          打分引擎（读 shared/scoring_rules.json）
-│   ├─ app.js              看板编排与 ECharts 渲染；本地/静态双模式自动切换
+│   ├─ app.js              看板编排：结论区 / 关键价位 / 明细 / 持仓 / 新闻
+│   ├─ charts.js           ECharts 图表：K线+量能+信号、维度瀑布、碳酸锂（主题自适应）
+│   ├─ motion.js           动效工具：数字滚动、错峰入场、降级与 rAF 兜底
+│   ├─ theme.js            深色 / 浅色主题切换与持久化
+│   ├─ style.css           设计系统：双主题令牌 + 响应式 + prefers-reduced-motion
 │   ├─ backtest.js         浏览器版回测
 │   ├─ selftest.html       浏览器内自检：对比 golden.json 期望值
 │   ├─ vendor/echarts.min.js
-│   └─ fixtures/           golden.json（期望值）+ sample_input.json（固定输入）
+│   └─ fixtures/           golden.json + sample_input.json + backtest_summary.json（历史胜率快照）
 ├─ shared/scoring_rules.json   权重、阈值、自选股、关键词——两端唯一口径
 ├─ local/
 │   ├─ server.py           Flask：/、/api/dashboard、/api/config、/api/backtest、/api/history
 │   ├─ datafeed.py         抓数（含期货实时价、除权修复、新浪回落）
 │   ├─ indicators.py  scoring.py  backtest.py  store.py
-├─ tests/                  pytest：指标、打分边界、两端一致性、回测、静态链路仿真
+│   ├─ backtest_summary.py 逐日打分 → 未来 5 日收益 → 分桶胜率（生成静态快照）
+├─ docs/screenshots/       README 用的页面截图（深色 / 浅色 / 窄屏）
+├─ tests/                  pytest：指标、打分边界、两端一致性、回测、静态链路仿真、UI 文案、动效
 ├─ data/                   运行时缓存与 sqlite（已 .gitignore）
 └─ .nojekyll  README.md  .gitignore
 ```
 
 ---
 
-## 5. 怎么改
+## 6. 怎么改
 
 - **改阈值/权重/自选股**：编辑 `shared/scoring_rules.json` → `python3 tests/gen_fixtures.py` → `python3 -m pytest tests/ -q`。
+- **改界面**：`index.html` + `assets/style.css` + `assets/app.js`（结构与文案）、`assets/charts.js`（图表）；改完跑 `tests/test_motion.py` 与 `tests/test_ui_logic.py` 兜口径与动效约束。
+- **更新历史胜率**：`python3 local/backtest_summary.py` 会重算分桶写回 `assets/fixtures/backtest_summary.json`（静态版依赖它）。
 - **改打分逻辑**：同时改 `local/scoring.py` 与 `assets/scoring.js`（两边逐行对应），再跑 pytest —— `test_parity.py` 会用 quickjs 执行 JS 并与 Python 比对，防止两端漂移。
 - **换标的**：把 `instruments.etf` 改成别的代码即可（自选股可换成你关心的板块）。
 
 ---
 
-## 6. 免责声明
+## 7. 免责声明
 
 本看板是个人量化观察工具，所有分数均由公开数据的机械规则算出，**不构成任何投资建议**。
 免费接口可能限流、变更或失效；历史胜率不代表未来表现。据此操作，风险自负。

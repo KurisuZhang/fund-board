@@ -1,18 +1,27 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>历史胜率验证 · 储能电池涨跌看板</title>
 <link rel="stylesheet" href="assets/style.css" />
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('sb_theme_v1')||'dark';}catch(e){}</script>
 <style>
   .holds { display: flex; gap: 8px; margin: 4px 0 14px; flex-wrap: wrap; }
-  .hold-btn { background: #1c2331; border: 1px solid #273043; color: #cfd9e8; padding: 6px 14px;
-    border-radius: 9px; cursor: pointer; font-size: 13px; }
-  .hold-btn.active { border-color: #4f8cff; color: #fff; background: #172033; }
-  #sampleTip { display: none; background: #1d1a10; border: 1px solid #4d3d1f; color: #ffd98a;
-    padding: 9px 13px; border-radius: 10px; font-size: 12.5px; margin-bottom: 12px; }
-  #status { color: #8b98ac; font-size: 13px; margin-bottom: 12px; }
+  .hold-btn {
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--text-2);
+    padding: 7px 14px; border-radius: 9px; cursor: pointer; font-size: 13px; font-family: inherit;
+    transition: border-color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  }
+  .hold-btn:hover { border-color: var(--accent); }
+  .hold-btn:active { transform: scale(.98); }
+  .hold-btn.active { border-color: var(--accent); color: var(--text); background: var(--accent-weak); }
+  #sampleTip {
+    display: none; background: var(--notice-bg); border: 1px solid var(--notice-line);
+    color: var(--notice-text); padding: 9px 13px; border-radius: 10px; font-size: 12.5px; margin-bottom: 12px;
+  }
+  #status { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -21,6 +30,7 @@
     <h1>🧪 历史胜率验证</h1>
     <span class="badge">信号翻多 → 持有 N 日</span>
     <span class="spacer"></span>
+    <button class="btn ghost" id="themeBtn" type="button">🌙 深色</button>
     <a class="btn" href="index.html" style="text-decoration:none;">← 返回看板</a>
   </header>
 
@@ -36,7 +46,7 @@
     </div>
     <div id="sampleTip"></div>
     <div class="facts" id="statCards" style="grid-template-columns: repeat(5, 1fr);"></div>
-    <div style="color:#8b98ac;font-size:11.8px;margin-top:10px;" id="btWarn"></div>
+    <div style="color:var(--muted);font-size:11.8px;margin-top:10px;" id="btWarn"></div>
   </section>
 
   <section class="card" style="margin-bottom:14px;">
@@ -67,6 +77,8 @@
 <script src="assets/indicators.js"></script>
 <script src="assets/scoring.js"></script>
 <script src="assets/datafeed.js"></script>
+<script src="assets/motion.js"></script>
+<script src="assets/theme.js"></script>
 <script src="assets/backtest.js"></script>
 </body>
 </html>
