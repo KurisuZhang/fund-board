@@ -219,3 +219,58 @@ def test_full_static_pipeline_scoring(browser):
     json.dump({"input": inp, "meta": meta, "score": score},
               open(os.path.join(ROOT, "data", "static_path_sample.json"), "w", encoding="utf-8"),
               ensure_ascii=False)
+
+
+def test_futures_change_shown_in_both_modes():
+    """碳酸锂卡片必须显示「较昨日」涨跌：实时口径用昨结算，日线口径用上一交易日收盘。"""
+    ctx = quickjs.Context()
+    ctx.eval("""
+      var window = globalThis;
+      var document = {
+        addEventListener: function () {}, getElementById: function () { return null; },
+        querySelector: function () { return null; },
+        createElement: function () { return { style: {}, appendChild: function () {} }; }
+      };
+      var module = { exports: {} }; var exports = module.exports;
+    """)
+    for name in ("indicators.js", "scoring.js", "datafeed.js", "app.js"):
+        ctx.eval(open(os.path.join(ROOT, "assets", name), encoding="utf-8").read())
+
+    # 本地口径：有实时价 → 与昨结算价比
+    ctx.eval("""
+      var LOCAL = { futures: [{d:'2026-10-21',c:95040},{d:'2026-10-22',c:94180}],
+        futuresRealtime: {price:94180, prevSettle:94500, prevClose:97680, date:'2026-10-22'} };
+      var LIVE = module.exports.futuresQuoteOf(LOCAL);
+      var LIVE_NOTE = module.exports.futuresFactNote(LIVE);
+    """)
+    live = json.loads(ctx.eval("JSON.stringify(LIVE)"))
+    assert live["isRealtime"] is True
+    assert live["basis"] == "较昨结算"
+    assert live["base"] == 94500
+    assert round(live["change"]) == -320
+    assert round(live["changePct"], 2) == -0.34
+    note = ctx.eval("LIVE_NOTE")
+    assert "▼" in note and "-320" in note and "较昨结算" in note and "94500" in note
+
+    # 静态口径：无实时价 → 与上一交易日收盘比
+    ctx.eval("""
+      var STATIC = { futures: LOCAL.futures, futuresRealtime: null };
+      var DAILY = module.exports.futuresQuoteOf(STATIC);
+      var DAILY_NOTE = module.exports.futuresFactNote(DAILY);
+    """)
+    daily = json.loads(ctx.eval("JSON.stringify(DAILY)"))
+    assert daily["isRealtime"] is False
+    assert daily["basis"] == "较上一交易日收盘"
+    assert daily["base"] == 95040
+    assert round(daily["change"]) == -860
+    note2 = ctx.eval("DAILY_NOTE")
+    assert "▼" in note2 and "-860" in note2 and "95040" in note2
+
+    # 上涨时用 ▲ 且带正号
+    ctx.eval("""
+      var UP = module.exports.futuresQuoteOf({futures:[{d:'d1',c:100},{d:'d2',c:105}], futuresRealtime:null});
+      var UP_NOTE = module.exports.futuresFactNote(UP);
+    """)
+    up = json.loads(ctx.eval("JSON.stringify(UP)"))
+    assert up["change"] == 5 and round(up["changePct"], 9) == 5
+    assert "▲" in ctx.eval("UP_NOTE") and "+5" in ctx.eval("UP_NOTE")

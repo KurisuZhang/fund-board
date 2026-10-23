@@ -89,6 +89,40 @@
     };
   }
 
+  /* 碳酸锂期货的「较昨日」涨跌：实时口径用昨结算价，日线口径用上一交易日收盘价 */
+  function futuresQuoteOf(charts) {
+    charts = charts || {};
+    var rt = charts.futuresRealtime || null;
+    var arr = charts.futures || [];
+    var last = arr.length ? arr[arr.length - 1] : null;
+    var prev = arr.length > 1 ? arr[arr.length - 2] : null;
+
+    if (rt && rt.price !== null && rt.price !== undefined) {
+      var useSettle = rt.prevSettle !== null && rt.prevSettle !== undefined;
+      var base = useSettle ? rt.prevSettle : rt.prevClose;
+      if (base) {
+        return {
+          price: rt.price, base: base, change: rt.price - base,
+          changePct: (rt.price / base - 1) * 100,
+          basis: useSettle ? '较昨结算' : '较昨收',
+          tag: '实时', date: rt.date || null, isRealtime: true
+        };
+      }
+    }
+    if (last && prev && prev.c) {
+      return {
+        price: last.c, base: prev.c, change: last.c - prev.c,
+        changePct: (last.c / prev.c - 1) * 100,
+        basis: '较上一交易日收盘', tag: '日线', date: last.d || null, isRealtime: false
+      };
+    }
+    if (last) {
+      return { price: last.c, base: null, change: null, changePct: null,
+               basis: '', tag: '日线', date: last.d || null, isRealtime: false };
+    }
+    return { price: null, base: null, change: null, changePct: null, basis: '', tag: '', date: null, isRealtime: false };
+  }
+
   async function loadStatic(force) {
     var cacheKey = 'sb_static_cache_v1';
     var ttl = (state.rules.fetch.cache_ttl_seconds || 900) * 1000;
@@ -154,6 +188,13 @@
     drawEtf(charts.etf || []);
     drawScores(score);
     drawFutures(charts.futures || [], charts.futuresRealtime);
+    var fHint = document.getElementById('futuresHint');
+    if (fHint) {
+      var fqHead = futuresQuoteOf(charts);
+      fHint.innerHTML = '连续合约 · 元/吨　<b class="' + cls(fqHead.changePct) + '">'
+        + (fqHead.change === null ? '—' : (fqHead.change > 0 ? '▲ +' : (fqHead.change < 0 ? '▼ ' : '— ')) + fmt(fqHead.change, 0))
+        + '</b>' + (fqHead.changePct === null ? '' : '（' + pctText(fqHead.changePct) + '）');
+    }
     drawStocks(charts.stocks || []);
 
     /* 新闻 */
@@ -166,7 +207,7 @@
     var warnBox = $('#warnBox');
     var msgs = (score.notes || []).slice();
     (meta.warnings || []).forEach(function (w) { msgs.push('数据源：' + w); });
-    if (meta.futuresSource === 'daily') msgs.push('期货为日线口径（浏览器无法直连新浪实时报价），盘中用最近收盘价代替。');
+    if (meta.futuresSource === 'daily') msgs.push('期货为日线口径（浏览器无法直连新浪实时报价），盘中用最近收盘价代替，涨跌按上一交易日收盘价计算。');
     warnBox.innerHTML = msgs.length ? msgs.map(function (m) { return '· ' + m; }).join('<br>') : '';
     warnBox.className = 'notice' + (msgs.length ? ' show' : '');
     $('#sources').textContent = (meta.sources || []).join('、') || '—';
@@ -178,15 +219,17 @@
     var box = $('#facts');
     box.innerHTML = '';
     var q = charts.etfQuote || {};
-    var futuresArr = charts.futures || [];
-    var futuresLast = futuresArr.length ? futuresArr[futuresArr.length - 1].c : null;
+    var fq = futuresQuoteOf(charts);
     var stocks = charts.stocks || [];
     var above = stocks.filter(function (s) { return s.aboveMa20 === true; }).length;
     var valid = stocks.filter(function (s) { return s.aboveMa20 !== null && s.aboveMa20 !== undefined; }).length;
 
     var items = [
       { k: 'ETF 最新价', v: fmt(q.price, 3), n: pctText(q.changePct), nc: cls(q.changePct) },
-      { k: '碳酸锂（连续）', v: fmt(futuresLast, 0), n: '元/吨' + (charts.futuresRealtime ? ' · 实时' : ' · 日线') },
+      { k: '碳酸锂（连续）', v: fmt(fq.price, 0),
+        n: futuresFactNote(fq),
+        nc: cls(fq.changePct),
+        tip: fq.base ? ('对比基准 ' + fmt(fq.base, 0) + ' 元/吨（' + fq.basis + '）') : '' },
       { k: '加权 PE(TTM)', v: itemValueOf(score, 'valuation'), n: '板块估值水位' },
       { k: '站上 MA20 广度', v: above + '/' + valid, n: valid ? fmt(above / valid * 100, 0) + '% 个股在均线上' : '样本不足' }
     ];
@@ -196,11 +239,31 @@
       var v = el('div', 'v', it.v);
       if (it.nc) v.className = 'v ' + it.nc;
       card.appendChild(v);
-      var n = el('div', 'n', it.n || '');
-      if (it.nc) n.className = 'n ' + it.nc;
+      var n = el('div', 'n');
+      n.innerHTML = it.n || '';
+      if (it.nc) n.className = 'n ' + it.nc + ' with-change';
       card.appendChild(n);
+      if (it.tip) card.title = it.tip;
       box.appendChild(card);
     });
+  }
+
+  function futuresChangeText(fq) {
+    if (fq.change === null || fq.change === undefined) return '暂无对比数据';
+    var arrow = fq.change > 0 ? '▲' : (fq.change < 0 ? '▼' : '—');
+    return arrow + ' ' + (fq.change > 0 ? '+' : '') + fmt(fq.change, 0) + ' 元/吨（'
+      + pctText(fq.changePct) + '）';
+  }
+
+  /* 事实卡里的三行说明：单位口径 / 当日涨跌 / 对比基准 */
+  function futuresFactNote(fq) {
+    var html = '元/吨 · ' + (fq.tag || '—');
+    if (fq.change === null || fq.change === undefined) return html + '<br>暂无对比数据';
+    html += '<br>' + futuresChangeText(fq);
+    if (fq.basis && fq.base !== null && fq.base !== undefined) {
+      html += '<br><span class="sub">' + fq.basis + ' ' + fmt(fq.base, 0) + '</span>';
+    }
+    return html;
   }
 
   function itemValueOf(score, key) {
@@ -464,5 +527,9 @@
     $('#refreshBtn').onclick = function () { refresh(true); };
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { futuresQuoteOf: futuresQuoteOf, futuresChangeText: futuresChangeText, futuresFactNote: futuresFactNote };
+  } else {
+    document.addEventListener('DOMContentLoaded', init);
+  }
 })();
