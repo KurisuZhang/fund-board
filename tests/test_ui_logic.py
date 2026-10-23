@@ -80,7 +80,8 @@ def _build_engine():
            " keyLevels = module.exports.keyLevels, winRateOf = module.exports.winRateOf,"
            " futuresQuoteOf = module.exports.futuresQuoteOf,"
            " futuresChangeText = module.exports.futuresChangeText,"
-           " futuresFactNote = module.exports.futuresFactNote;")
+           " futuresFactNote = module.exports.futuresFactNote,"
+           " dataDateText = module.exports.dataDateText;")
     c.eval("var SCORE = " + json.dumps(SCORE, ensure_ascii=False) + ";")
     c.eval("var CHARTS = " + json.dumps(CHARTS, ensure_ascii=False) + ";")
     c.eval("var SUMMARY = " + json.dumps(SUMMARY, ensure_ascii=False) + ";")
@@ -202,6 +203,20 @@ def test_win_rate_empty_bucket():
 
 def test_win_rate_without_snapshot():
     assert _json("winRateOf(SCORE, null)") is None
+
+
+# ------------------------------------------------------------- 数据日期标签
+def test_data_date_uses_today_when_intraday():
+    """盘中日线还没更新，标签必须是抓取当天，否则会显示成"昨天的盘中"。"""
+    assert _json("dataDateText({isIntraday: true, fetchedAtIso: '2026-10-23 10:15:02',"
+                 " dataDate: '2026-10-22'})") == "2026-10-23"
+
+
+def test_data_date_uses_last_bar_when_closed():
+    assert _json("dataDateText({isIntraday: false, fetchedAtIso: '2026-10-23 18:05:00',"
+                 " dataDate: '2026-10-23'})") == "2026-10-23"
+    assert _json("dataDateText({dataDate: '2026-10-22'})") == "2026-10-22"
+    assert _json("dataDateText({})") == "—"
 
 
 # ---------------------------------------------- 期货卡片（回归：必须显示涨跌）

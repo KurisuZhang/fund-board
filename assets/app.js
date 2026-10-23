@@ -4,7 +4,7 @@
 
   var state = {
     rules: null, payload: null, summary: null, busy: false, firstPaint: true,
-    costPrice: null
+    costPrice: null, quotePrice: null
   };
 
   var SETTINGS_KEY = 'sb_dashboard_settings_v1';
@@ -287,7 +287,10 @@
     $('#modeBadge').textContent = payload.mode === 'local' ? '本地版 · 含期货实时价' : 'GitHub Pages 静态版';
     $('#modeBadge').className = 'badge ok';
     var dataBadge = $('#dataBadge');
-    dataBadge.textContent = (meta.isIntraday ? '盘中 · ' : '收盘 · ') + (meta.dataDate || '—');
+    dataBadge.textContent = (meta.isIntraday ? '盘中 · ' : '收盘 · ') + dataDateText(meta);
+    dataBadge.title = meta.isIntraday
+      ? '盘中报价抓取于 ' + (meta.fetchedAtIso || '刚刚') + '；日线仍昨日收盘'
+      : '日线收盘数据';
     dataBadge.className = 'badge ' + (meta.isIntraday ? 'live' : '');
     $('#fetchedAt').textContent = '抓取于 ' + (meta.fetchedAtIso || ts2text(meta.fetchedAt || Date.now() / 1000));
 
@@ -324,7 +327,7 @@
     state.firstPaint = false;
   }
 
-  /* 刻度盘：指针旋转 total*0.9 度；分段色带按 ±25 阈值 */
+  /* 数据日期：盘中用抓取当天（日线还没更新到今日），收盘用最后一根日线 */
   function renderDial(score) {
     var total = score.total || 0;
     var bands = $('#dialBands');
@@ -364,6 +367,15 @@
       scoreEl.textContent = (total > 0 ? '+' : '') + total.toFixed(1);
     }
     scoreEl.className = cls(total);
+  }
+
+  function dataDateText(meta) {
+    meta = meta || {};
+    if (meta.isIntraday) {
+      var iso = meta.fetchedAtIso || '';
+      if (iso.length >= 10) return iso.slice(0, 10);
+    }
+    return meta.dataDate || '—';
   }
 
   function arcPath(from, to) {
@@ -621,17 +633,18 @@
       ? settings.costPrice : (cfg.costPrice || null));
     var input = $('#costPrice');
     if (input && state.costPrice && !input.value) input.value = state.costPrice;
-    updatePL(quote.price);
+    state.quotePrice = quote.price;      /* 刷新后价格会变，盈亏必须跟着最新价走 */
+    updatePL();
 
     if (!input || input.dataset.bound === '1') return;
     input.dataset.bound = '1';
-    input.addEventListener('input', function () { updatePL(quote.price); });
+    input.addEventListener('input', function () { updatePL(); });
     input.addEventListener('change', function () {
       var v = parseFloat(input.value);
       var valid = isFinite(v) && v > 0;
       state.costPrice = valid ? v : null;
       saveSettings({ costPrice: valid ? v : null });
-      updatePL(quote.price);
+      updatePL();
       if (state.payload && state.payload.mode === 'local') {
         fetch('/api/config', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -657,7 +670,8 @@
     });
   }
 
-  function updatePL(price) {
+  function updatePL() {
+    var price = state.quotePrice;
     var input = $('#costPrice');
     var cost = input ? parseFloat(input.value) : NaN;
     var plBox = $('#plBox'), note = $('#plNote');
@@ -847,7 +861,8 @@
       narrativeOf: narrativeOf,
       bullBear: bullBear,
       keyLevels: keyLevels,
-      winRateOf: winRateOf
+      winRateOf: winRateOf,
+      dataDateText: dataDateText
     };
   } else {
     document.addEventListener('DOMContentLoaded', init);
