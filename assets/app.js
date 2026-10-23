@@ -374,6 +374,13 @@
     if (meta.isIntraday) {
       var iso = meta.fetchedAtIso || '';
       if (iso.length >= 10) return iso.slice(0, 10);
+      /* 静态版没有 iso 字符串，用抓取时间戳换算成本地日期 */
+      var ts = meta.fetchedAt;
+      if (ts) {
+        var d = new Date(ts * 1000);
+        var pad = function (n) { return (n < 10 ? '0' : '') + n; };
+        return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+      }
     }
     return meta.dataDate || '—';
   }

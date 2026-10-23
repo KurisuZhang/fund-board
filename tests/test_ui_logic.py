@@ -212,6 +212,13 @@ def test_data_date_uses_today_when_intraday():
                  " dataDate: '2026-10-22'})") == "2026-10-23"
 
 
+def test_data_date_falls_back_to_epoch_for_static_mode():
+    ctx_env().eval("var ts = Math.floor(Date.UTC(2026, 9, 23, 2, 15) / 1000);")
+    text = _json("dataDateText({isIntraday: true, fetchedAt: ts, dataDate: '2026-10-22'})")
+    assert text.startswith("2026-10-2"), text
+    assert text != "2026-10-22"
+
+
 def test_data_date_uses_last_bar_when_closed():
     assert _json("dataDateText({isIntraday: false, fetchedAtIso: '2026-10-23 18:05:00',"
                  " dataDate: '2026-10-23'})") == "2026-10-23"
