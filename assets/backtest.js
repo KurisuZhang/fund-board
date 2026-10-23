@@ -111,27 +111,25 @@
   }
 
   function strategyEquity(etfBars, events, hold, start) {
+    /* 信号择时净值：只在信号持有期内满仓 ETF，其余空仓，逐日复利（与买入持有同坐标系） */
     var idxByDate = {};
     for (var i = 0; i < etfBars.length; i++) idxByDate[etfBars[i].d] = i;
-    var positions = [], cursor = 0, out = [];
-    var caps = Math.max(1, events.length);
-    for (var k = start; k < etfBars.length; k++) {
-      var d = etfBars[k].d;
-      while (cursor < events.length && events[cursor].date <= d) {
-        var ei = idxByDate[events[cursor].date];
-        if (ei !== undefined) {
-          positions.push([ei, Math.min(ei + hold, etfBars.length - 1), etfBars[ei].c]);
-        }
-        cursor++;
+    var n = etfBars.length;
+    var active = new Array(n);
+    for (var a = 0; a < n; a++) active[a] = 0;
+    events.forEach(function (ev) {
+      var ei = idxByDate[ev.date];
+      if (ei === undefined) return;
+      var last = Math.min(ei + hold, n - 1);
+      for (var k = ei; k <= last; k++) active[k] = 1;
+    });
+
+    var curve = 1, out = [];
+    for (var i2 = start; i2 < n; i2++) {
+      if (active[i2] && i2 > 0 && etfBars[i2 - 1].c) {
+        curve *= etfBars[i2].c / etfBars[i2 - 1].c;
       }
-      var total = 0, active = 0;
-      for (var p = 0; p < positions.length; p++) {
-        if (positions[p][0] <= k && k <= positions[p][1]) {
-          total += etfBars[k].c / positions[p][2] - 1;
-          active++;
-        }
-      }
-      out.push({ d: d, v: Math.round(total / caps * 10000) / 100, active: active });
+      out.push({ d: etfBars[i2].d, v: Math.round((curve - 1) * 10000) / 100, active: active[i2] });
     }
     return out;
   }
@@ -218,7 +216,7 @@
       animation: false,
       tooltip: { trigger: 'axis', backgroundColor: '#101722', borderColor: '#2a3444',
         textStyle: { color: '#e6edf6', fontSize: 11.5 } },
-      legend: { data: ['信号策略（累计）', '买入持有'], top: 0, textStyle: { color: '#8b98ac', fontSize: 11 } },
+      legend: { data: ['信号择时净值', '买入持有'], top: 0, textStyle: { color: '#8b98ac', fontSize: 11 } },
       grid: { left: 56, right: 20, top: 32, bottom: 26 },
       xAxis: { type: 'category', data: dates, axisLine: { lineStyle: { color: '#2a3444' } },
         axisLabel: { color: '#8b98ac', fontSize: 10, interval: Math.max(0, Math.floor(dates.length / 6)) } },
@@ -226,7 +224,7 @@
         axisLabel: { color: '#8b98ac', fontSize: 10.5, formatter: '{value}%' },
         splitLine: { lineStyle: { color: '#1c2431' } } },
       series: [
-        { name: '信号策略（累计）', type: 'line', showSymbol: false,
+        { name: '信号择时净值', type: 'line', showSymbol: false,
           data: data.equity.map(function (p) { return p.v; }),
           lineStyle: { width: 1.8, color: '#4f8cff' }, itemStyle: { color: '#4f8cff' } },
         { name: '买入持有', type: 'line', showSymbol: false,

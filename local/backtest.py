@@ -124,24 +124,25 @@ def _buyhold_equity(etf_bars: List[dict], start: int) -> List[dict]:
 
 
 def _strategy_equity(etf_bars: List[dict], events: List[dict], hold: int, start: int) -> List[dict]:
-    """每个事件位分配 1 份资金、持有 hold 天；总资金按 可用份数 归一。"""
+    """信号择时净值：只在信号持有期内满仓 ETF，其余时间空仓，逐日复利。
+
+    与「买入持有」同一坐标系，便于直接比较两条曲线谁更赚钱。
+    """
     idx_by_date = {b["d"]: i for i, b in enumerate(etf_bars)}
-    positions: List[List] = []  # [entry_idx, exit_idx, entry_price]
-    cursor = 0
+    n = len(etf_bars)
+    active = [0] * n
+    for ev in events:
+        ei = idx_by_date.get(ev["date"])
+        if ei is None:
+            continue
+        for i in range(ei, min(ei + hold, n - 1) + 1):
+            active[i] = 1
+
+    curve = 1.0
     out = []
-    caps = max(1, len(events))
-    for i in range(start, len(etf_bars)):
-        d = etf_bars[i]["d"]
-        while cursor < len(events) and events[cursor]["date"] <= d:
-            ev = events[cursor]
-            ei = idx_by_date.get(ev["date"])
-            if ei is not None:
-                positions.append([ei, min(ei + hold, len(etf_bars) - 1), etf_bars[ei]["c"]])
-            cursor += 1
-        active = [p for p in positions if p[0] <= i <= p[1]]
-        total = 0.0
-        for p in active:
-            total += (etf_bars[i]["c"] / p[2] - 1.0)
-        out.append({"d": d, "v": round(total / caps * 100.0, 2),
-                    "active": len(active)})
+    for i in range(start, n):
+        if active[i] and i > 0 and etf_bars[i - 1]["c"]:
+            curve *= etf_bars[i]["c"] / etf_bars[i - 1]["c"]
+        out.append({"d": etf_bars[i]["d"], "v": round((curve - 1.0) * 100.0, 2),
+                    "active": active[i]})
     return out
